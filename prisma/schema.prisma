@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Statement {
+  id           String        @id @default(cuid())
+  fileName     String
+  fileHash     String        @unique
+  uploadedAt   DateTime      @default(now())
+  periodStart  DateTime?
+  periodEnd    DateTime?
+  transactions Transaction[]
+
+  @@index([uploadedAt])
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+  statementId   String
+  statement     Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  date          DateTime
+  operationDate DateTime?
+  merchant      String
+  location      String?
+  country       String?
+  operationType String?
+  description   String?
+  amount        Decimal   @db.Decimal(14, 2)
+  currency      String    @default("PEN")
+  category      String    @default("uncategorized")
+  rawLine       String?
+
+  @@index([date])
+  @@index([category])
+  @@index([currency])
+  @@index([statementId])
+}
+
+model CategoryRule {
+  id        String   @id @default(cuid())
+  pattern   String
+  category  String
+  priority  Int      @default(100)
+  createdAt DateTime @default(now())
+
+  @@index([priority])
+  @@index([category])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  label     String
+  emoji     String   @default("📁")
+  color     String   @default("#6366f1")
+  isSystem  Boolean  @default(false)
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
