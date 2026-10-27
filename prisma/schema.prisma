@@ -16,6 +16,7 @@ model Statement {
   periodEnd    DateTime?
   transactions Transaction[]
 
+  @@unique([periodStart, periodEnd])
   @@index([uploadedAt])
 }
 

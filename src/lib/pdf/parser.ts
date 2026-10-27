@@ -53,7 +53,17 @@ function parseShortDate(
   return new Date(Date.UTC(year, monthIdx, d));
 }
 
-/** Pick the year variant that falls within the statement period (handles Dec/Jan spans). */
+function distanceToPeriod(d: Date, periodStart: Date, periodEnd: Date): number {
+  if (d < periodStart) return periodStart.getTime() - d.getTime();
+  if (d > periodEnd) return d.getTime() - periodEnd.getTime();
+  return 0;
+}
+
+/**
+ * Pick the year variant closest to the statement period (handles Dec/Jan spans).
+ * Rows can fall slightly outside the period (e.g. a purchase made a few days
+ * before periodStart but processed inside it), so the nearest year wins.
+ */
 function resolveDateInPeriod(
   day: string,
   monthAbbr: string,
@@ -64,15 +74,18 @@ function resolveDateInPeriod(
   const primary = parseShortDate(day, monthAbbr, anchorYear);
   if (!primary || !periodStart || !periodEnd) return primary;
 
-  if (primary > periodEnd) {
-    const prev = parseShortDate(day, monthAbbr, anchorYear - 1);
-    if (prev && prev >= periodStart && prev <= periodEnd) return prev;
+  let best = primary;
+  let bestDistance = distanceToPeriod(primary, periodStart, periodEnd);
+  for (const year of [anchorYear - 1, anchorYear + 1]) {
+    const candidate = parseShortDate(day, monthAbbr, year);
+    if (!candidate) continue;
+    const distance = distanceToPeriod(candidate, periodStart, periodEnd);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
   }
-  if (primary < periodStart) {
-    const next = parseShortDate(day, monthAbbr, anchorYear + 1);
-    if (next && next >= periodStart && next <= periodEnd) return next;
-  }
-  return primary;
+  return best;
 }
 
 function parseAmount(raw: string, negative: boolean): number | null {

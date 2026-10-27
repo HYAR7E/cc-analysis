@@ -25,7 +25,14 @@ export type IngestResult =
       transactionsInserted: number;
       duplicates: number;
     }
-  | { status: "duplicate"; statementId: string }
+  | {
+      status: "duplicate";
+      statementId: string;
+      reason: "hash" | "period";
+      existingFileName: string;
+      periodStart?: Date;
+      periodEnd?: Date;
+    }
   | { status: "error"; error: string };
 
 function sha256(buffer: Buffer): string {
@@ -41,10 +48,32 @@ export async function ingestPdf(
 
   const existing = await prisma.statement.findUnique({ where: { fileHash } });
   if (existing) {
-    return { status: "duplicate", statementId: existing.id };
+    return {
+      status: "duplicate",
+      statementId: existing.id,
+      reason: "hash",
+      existingFileName: existing.fileName,
+    };
   }
 
   const parsed = await parseStatement(buffer, password);
+
+  // Same statement re-downloaded has different bytes, so also dedupe by period.
+  if (parsed.periodStart && parsed.periodEnd) {
+    const samePeriod = await prisma.statement.findFirst({
+      where: { periodStart: parsed.periodStart, periodEnd: parsed.periodEnd },
+    });
+    if (samePeriod) {
+      return {
+        status: "duplicate",
+        statementId: samePeriod.id,
+        reason: "period",
+        existingFileName: samePeriod.fileName,
+        periodStart: parsed.periodStart,
+        periodEnd: parsed.periodEnd,
+      };
+    }
+  }
 
   const valid = parsed.transactions.flatMap((t) => {
     const r = rawTxnSchema.safeParse(t);

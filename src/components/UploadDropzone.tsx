@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { formatDate } from "@/lib/format";
 
 type UploadStatus =
   | { state: "idle" }
@@ -11,7 +12,14 @@ type UploadStatus =
       fileName: string;
       result:
         | { status: "ok"; statementId: string; transactionsInserted: number }
-        | { status: "duplicate"; statementId: string };
+        | {
+            status: "duplicate";
+            statementId: string;
+            reason: "hash" | "period";
+            existingFileName: string;
+            periodStart?: string;
+            periodEnd?: string;
+          };
     }
   | { state: "error"; fileName: string; message: string };
 
@@ -105,8 +113,24 @@ export function UploadDropzone() {
 
       {status.state === "done" && status.result.status === "duplicate" && (
         <div className="rounded border border-amber-600/30 bg-amber-600/10 text-sm p-3">
-          <strong>{status.fileName}</strong> already ingested (statement{" "}
-          {status.result.statementId}). Skipped.
+          {status.result.reason === "period" &&
+          status.result.periodStart &&
+          status.result.periodEnd ? (
+            <>
+              Statement for period{" "}
+              {formatDate(status.result.periodStart)} –{" "}
+              {formatDate(status.result.periodEnd)} already uploaded (
+              <strong>{status.result.existingFileName}</strong>). Skipped.
+            </>
+          ) : (
+            <>
+              <strong>{status.fileName}</strong> already ingested (
+              {status.result.existingFileName}). Skipped.
+            </>
+          )}
+          <div className="text-xs text-black/60 dark:text-white/60 mt-1">
+            Statement ID: {status.result.statementId}
+          </div>
         </div>
       )}
 

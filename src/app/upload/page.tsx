@@ -12,8 +12,8 @@ export default function UploadPage() {
       </div>
       <UploadDropzone />
       <div className="text-xs text-black/50 dark:text-white/50 border-t border-black/10 dark:border-white/10 pt-4">
-        Supports BCP credit card statements (Spanish). Same file re-uploaded is
-        deduped via SHA-256. PEN and USD transactions are split automatically
+        Supports BCP credit card statements (Spanish). Re-uploads are deduped
+        by file hash (SHA-256) and by statement period. PEN and USD transactions are split automatically
         based on the country code on each row.
       </div>
     </div>

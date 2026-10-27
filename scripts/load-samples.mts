@@ -84,7 +84,9 @@ async function main() {
           `  ✓ ${fileName}: ${result.transactionsInserted} transaction(s) inserted`,
         );
       } else if (result.status === "duplicate") {
-        console.log(`  ~ ${fileName}: duplicate (statement ${result.statementId})`);
+        console.log(
+          `  ~ ${fileName}: duplicate by ${result.reason} of ${result.existingFileName} (statement ${result.statementId})`,
+        );
       } else {
         failures++;
         console.error(`  ✗ ${fileName}: ${result.error}`);
